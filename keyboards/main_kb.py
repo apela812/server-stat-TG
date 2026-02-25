@@ -21,6 +21,7 @@ def get_main_keyboard() -> ReplyKeyboardMarkup:
                 KeyboardButton(text="⚙️ Система"),
             ],
             [
+                KeyboardButton(text="📋 Процессы"),
                 KeyboardButton(text="🔄 Обновить"),
             ],
         ],
@@ -47,6 +48,9 @@ def get_inline_keyboard() -> InlineKeyboardMarkup:
                 InlineKeyboardButton(text="⚙️ Система", callback_data="status_system"),
             ],
             [
+                InlineKeyboardButton(text="📋 Процессы", callback_data="processes_memory"),
+            ],
+            [
                 InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh"),
             ],
         ]
@@ -58,6 +62,21 @@ def get_back_keyboard() -> InlineKeyboardMarkup:
     """Клавиатура с кнопкой «Назад»."""
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
+            [InlineKeyboardButton(text="↩️ Назад в меню", callback_data="back_menu")],
+        ]
+    )
+    return keyboard
+
+
+def get_processes_keyboard() -> InlineKeyboardMarkup:
+    """Клавиатура для управления процессами."""
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="🔥 По CPU", callback_data="processes_cpu"),
+                InlineKeyboardButton(text="💾 По памяти", callback_data="processes_memory"),
+            ],
+            [InlineKeyboardButton(text="🔄 Обновить", callback_data="processes_refresh")],
             [InlineKeyboardButton(text="↩️ Назад в меню", callback_data="back_menu")],
         ]
     )

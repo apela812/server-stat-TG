@@ -12,8 +12,9 @@ from utils.stats import (
     get_network_stats,
     get_system_info,
     get_top_processes,
+    get_all_running_processes,
 )
-from keyboards.main_kb import get_main_keyboard, get_inline_keyboard, get_back_keyboard
+from keyboards.main_kb import get_main_keyboard, get_inline_keyboard, get_back_keyboard, get_processes_keyboard
 
 router = Router()
 
@@ -92,6 +93,27 @@ def format_system_info(sys_info: dict) -> str:
     )
 
 
+def format_running_processes(processes: list, sort_by: str = "memory") -> str:
+    """Форматирование списка запущенных процессов."""
+    if not processes:
+        return "📋 Нет запущенных процессов"
+
+    sort_label = "Памяти" if sort_by == "memory" else "CPU"
+    text = f"📋 Топ процессов по использованию {sort_label}\n\n"
+    
+    for i, proc in enumerate(processes, 1):
+        pid = proc.get("pid", "N/A")
+        name = proc.get("name", "Unknown")[:30]  # Ограничиваем длину имени
+        cpu = proc.get("cpu_percent", 0) or 0
+        memory = proc.get("memory_percent", 0) or 0
+        
+        text += f"{i}. <code>{name}</code>\n"
+        text += f"   PID: {pid}\n"
+        text += f"   CPU: {cpu:.1f}% | RAM: {memory:.1f}%\n\n"
+    
+    return text
+
+
 def format_general_status(cpu: dict, ram: dict, sys_info: dict) -> str:
     """Форматирование общего статуса."""
     cpu_status = "🟢" if cpu["percent"] < 50 else "🟡" if cpu["percent"] < 80 else "🔴"
@@ -156,6 +178,7 @@ async def cmd_help(message: types.Message):
         "/disk - Статистика дисков\n"
         "/network - Статистика сети\n"
         "/system - Информация о системе\n"
+        "/processes - Список запущенных процессов\n"
         "/help - Эта справка\n\n"
         "Также вы можете использовать кнопки в меню."
     )
@@ -227,6 +250,35 @@ async def msg_system(message: types.Message):
 
     sys_info = get_system_info()
     await message.answer(format_system_info(sys_info), reply_markup=get_back_keyboard())
+
+
+@router.message(Command("processes"))
+async def cmd_processes(message: types.Message):
+    """Обработчик команды /processes - список запущенных процессов."""
+    if not check_user_access(message.from_user.id):
+        await message.answer("❌ У вас нет доступа к этому боту.")
+        return
+
+    processes = get_all_running_processes(sort_by="memory", limit=15)
+    await message.answer(
+        format_running_processes(processes, sort_by="memory"),
+        reply_markup=get_processes_keyboard(),
+        parse_mode="HTML"
+    )
+
+
+@router.message(F.text == "📋 Процессы")
+async def msg_processes(message: types.Message):
+    """Обработчик кнопки «Процессы»."""
+    if not check_user_access(message.from_user.id):
+        return
+
+    processes = get_all_running_processes(sort_by="memory", limit=15)
+    await message.answer(
+        format_running_processes(processes, sort_by="memory"),
+        reply_markup=get_processes_keyboard(),
+        parse_mode="HTML"
+    )
 
 
 @router.message(F.text == "🔄 Обновить")
@@ -310,3 +362,36 @@ async def cb_status_system(callback: types.CallbackQuery):
     """Обработчик кнопки «Система» (inline)."""
     sys_info = get_system_info()
     await callback.message.edit_text(format_system_info(sys_info), reply_markup=get_back_keyboard())
+
+
+@router.callback_query(F.data == "processes_memory")
+async def cb_processes_memory(callback: types.CallbackQuery):
+    """Обработчик кнопки «По памяти» для процессов."""
+    processes = get_all_running_processes(sort_by="memory", limit=15)
+    await callback.message.edit_text(
+        format_running_processes(processes, sort_by="memory"),
+        reply_markup=get_processes_keyboard(),
+        parse_mode="HTML"
+    )
+
+
+@router.callback_query(F.data == "processes_cpu")
+async def cb_processes_cpu(callback: types.CallbackQuery):
+    """Обработчик кнопки «По CPU» для процессов."""
+    processes = get_all_running_processes(sort_by="cpu", limit=15)
+    await callback.message.edit_text(
+        format_running_processes(processes, sort_by="cpu"),
+        reply_markup=get_processes_keyboard(),
+        parse_mode="HTML"
+    )
+
+
+@router.callback_query(F.data == "processes_refresh")
+async def cb_processes_refresh(callback: types.CallbackQuery):
+    """Обработчик кнопки «Обновить» для процессов."""
+    processes = get_all_running_processes(sort_by="memory", limit=15)
+    await callback.message.edit_text(
+        "🔄 Данные обновлены\n\n" + format_running_processes(processes, sort_by="memory"),
+        reply_markup=get_processes_keyboard(),
+        parse_mode="HTML"
+    )

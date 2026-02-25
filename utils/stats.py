@@ -124,3 +124,41 @@ def get_top_processes(limit: int = 5) -> list:
     processes.sort(key=lambda x: x["cpu_percent"] or 0, reverse=True)
 
     return processes[:limit]
+
+
+def get_all_running_processes(sort_by: str = "memory", limit: int = 15) -> list:
+    """Получить список запущенных процессов, отсортированных по CPU или памяти."""
+    processes = []
+    for proc in psutil.process_iter(["pid", "name", "cpu_percent", "memory_percent", "status"]):
+        try:
+            pinfo = proc.info
+            if pinfo["status"] == psutil.STATUS_RUNNING:
+                processes.append(pinfo)
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            continue
+
+    # Сортируем по выбранному параметру
+    if sort_by == "cpu":
+        processes.sort(key=lambda x: x["cpu_percent"] or 0, reverse=True)
+    else:  # memory (по умолчанию)
+        processes.sort(key=lambda x: x["memory_percent"] or 0, reverse=True)
+
+    return processes[:limit]
+
+
+def get_process_info(pid: int) -> dict:
+    """Получить подробную информацию о процессе по PID."""
+    try:
+        proc = psutil.Process(pid)
+        return {
+            "pid": proc.pid,
+            "name": proc.name(),
+            "status": proc.status(),
+            "cpu_percent": proc.cpu_percent(interval=0.1),
+            "memory_percent": proc.memory_percent(),
+            "memory_info": proc.memory_info().rss / (1024**2),  # MB
+            "num_threads": proc.num_threads(),
+            "create_time": proc.create_time(),
+        }
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        return None
