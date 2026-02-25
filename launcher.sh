@@ -24,6 +24,9 @@ ENV_FILE=".env"
 USERS_FILE=".users.db"
 DB_FILE=".bot_data.db"
 VENV_DIR="venv"
+LOG_DIR="logs"
+BOT_PID_FILE=".bot.pid"
+BOT_LOG_FILE="$LOG_DIR/bot.log"
 
 # ═══════════════════════════════════════════════════════════════════
 # ФУНКЦИИ ВЫВОДА
@@ -45,7 +48,9 @@ print_main_menu() {
     echo "  3. 🔧 Управление окружением"
     echo "  4. 📊 Состояние системы"
     echo "  5. 🚀 Запустить бота"
-    echo "  6. ❌ Выход"
+    echo "  6. 🌙 Запустить бота в фоне"
+    echo "  7. ⏹️  Остановить бота"
+    echo "  8. ❌ Выход"
 }
 
 print_config_menu() {
@@ -85,7 +90,8 @@ print_status_menu() {
     echo "  2. 👥 Показать всех пользователей"
     echo "  3. 📦 Показать установленные пакеты"
     echo "  4. 🐍 Версия Python"
-    echo "  5. ◀️  Назад в главное меню"
+    echo "  5. 🔄 Статус бота"
+    echo "  6. ◀️  Назад в главное меню"
 }
 
 print_separator() {
@@ -528,6 +534,135 @@ run_bot() {
     python main.py
 }
 
+run_bot_background() {
+    init_env_file
+    
+    # Проверить обязательные переменные
+    bot_token=$(get_env_value "BOT_TOKEN")
+    
+    if [ -z "$bot_token" ] || [ "$bot_token" = "your_token_here" ]; then
+        error "BOT_TOKEN не установлен в .env файле"
+        info "Используйте опцию '⚙️  Управление конфигурацией'"
+        return
+    fi
+    
+    # Проверить, не запущен ли уже бот
+    if [ -f "$BOT_PID_FILE" ]; then
+        stored_pid=$(cat "$BOT_PID_FILE")
+        if ps -p "$stored_pid" > /dev/null 2>&1; then
+            warning "Бот уже запущен (PID: $stored_pid)"
+            return
+        else
+            # Удалить старый PID файл
+            rm -f "$BOT_PID_FILE"
+        fi
+    fi
+    
+    if [ ! -d "$VENV_DIR" ]; then
+        warning "Виртуальное окружение не найдено, создаю..."
+        create_venv
+        install_dependencies
+    fi
+    
+    # Создать директорию для логов если её нет
+    mkdir -p "$LOG_DIR"
+    
+    echo -e "\n${GREEN}🌙 Запуск бота в фоне...${NC}"
+    
+    # Запустить бота в фоне
+    source "$VENV_DIR/bin/activate"
+    nohup python main.py > "$BOT_LOG_FILE" 2>&1 &
+    BOT_PID=$!
+    
+    # Сохранить PID
+    echo "$BOT_PID" > "$BOT_PID_FILE"
+    
+    sleep 2
+    
+    # Проверить, запустился ли процесс
+    if ps -p "$BOT_PID" > /dev/null 2>&1; then
+        success "Бот успешно запущен в фоне"
+        info "PID: $BOT_PID"
+        info "Логи: $BOT_LOG_FILE"
+        info "Для просмотра логов: tail -f $BOT_LOG_FILE"
+        info "Для остановки: ./launcher.sh --stop"
+    else
+        error "Ошибка запуска бота"
+        error "Логи:"
+        cat "$BOT_LOG_FILE"
+        rm -f "$BOT_PID_FILE"
+    fi
+}
+
+stop_bot() {
+    if [ ! -f "$BOT_PID_FILE" ]; then
+        warning "Файл PID не найден, бот не запущен или был запущен другим способом"
+        return
+    fi
+    
+    bot_pid=$(cat "$BOT_PID_FILE")
+    
+    if ! ps -p "$bot_pid" > /dev/null 2>&1; then
+        warning "Процесс с PID $bot_pid не найден"
+        rm -f "$BOT_PID_FILE"
+        return
+    fi
+    
+    echo -e "\n${YELLOW}⏹️  Остановка бота (PID: $bot_pid)...${NC}"
+    
+    # Попытка мягкой остановки
+    kill -TERM "$bot_pid" 2>/dev/null || true
+    
+    # Ждём 5 секунд
+    for i in {1..5}; do
+        if ! ps -p "$bot_pid" > /dev/null 2>&1; then
+            success "Бот остановлен"
+            rm -f "$BOT_PID_FILE"
+            return
+        fi
+        sleep 1
+    done
+    
+    # Если не остановился, принудительно завершаем
+    warning "Принудительная остановка..."
+    kill -KILL "$bot_pid" 2>/dev/null || true
+    sleep 1
+    
+    if ps -p "$bot_pid" > /dev/null 2>&1; then
+        error "Не удалось остановить бота"
+    else
+        success "Бот остановлен"
+        rm -f "$BOT_PID_FILE"
+    fi
+}
+
+show_bot_status() {
+    if [ ! -f "$BOT_PID_FILE" ]; then
+        info "Бот не запущен (файл PID не найден)"
+        return
+    fi
+    
+    bot_pid=$(cat "$BOT_PID_FILE")
+    
+    echo -e "\n${BOLD}${CYAN}🔄 Статус бота:${NC}\n"
+    
+    if ps -p "$bot_pid" > /dev/null 2>&1; then
+        success "Бот запущен"
+        info "PID: $bot_pid"
+        info "Процесс:"
+        ps -p "$bot_pid" --format pid,cmd,etime
+    else
+        warning "Процесс не найден (PID: $bot_pid)"
+        info "Файл PID устаревает, удаляю..."
+        rm -f "$BOT_PID_FILE"
+    fi
+    
+    if [ -f "$BOT_LOG_FILE" ]; then
+        echo -e "\n${CYAN}📄 Последние строки логов:${NC}\n"
+        tail -20 "$BOT_LOG_FILE"
+    fi
+}
+
 # ═══════════════════════════════════════════════════════════════════
 # ГЛАВНОЕ МЕНЮ
 # ═══════════════════════════════════════════════════════════════════
@@ -598,7 +733,8 @@ status_menu_handler() {
             2) show_users ;;
             3) show_all_packages ;;
             4) show_python_version ;;
-            5) break ;;
+            5) show_bot_status ;;
+            6) break ;;
             *) error "Неверный выбор" ;;
         esac
     done
@@ -617,7 +753,9 @@ main_menu() {
             3) env_menu_handler ;;
             4) status_menu_handler ;;
             5) run_bot ;;
-            6) 
+            6) run_bot_background ;;
+            7) stop_bot ;;
+            8) 
                 echo -e "\n${GREEN}До свидания! 👋${NC}\n"
                 exit 0
                 ;;
@@ -645,6 +783,10 @@ if [ $# -gt 0 ]; then
             echo "  --help, -h       Показать эту справку"
             echo "  --setup          Инициализировать всё с нуля"
             echo "  --run            Запустить бота напрямую"
+            echo "  --start          Запустить бота в фоне"
+            echo "  --stop           Остановить фоновый процесс бота"
+            echo "  --status         Показать статус бота"
+            echo "  --logs           Показать логи бота"
             echo "  --config         Открыть меню конфигурации"
             echo "  --users          Открыть меню пользователей"
             echo "  (пусто)          Открыть интерактивное меню"
@@ -658,6 +800,22 @@ if [ $# -gt 0 ]; then
             ;;
         --run)
             run_bot
+            ;;
+        --start)
+            run_bot_background
+            ;;
+        --stop)
+            stop_bot
+            ;;
+        --status)
+            show_bot_status
+            ;;
+        --logs)
+            if [ -f "$BOT_LOG_FILE" ]; then
+                tail -f "$BOT_LOG_FILE"
+            else
+                error "Файл логов не найден: $BOT_LOG_FILE"
+            fi
             ;;
         --config)
             config_menu_handler

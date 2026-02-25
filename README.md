@@ -53,7 +53,22 @@ cd server_monitor_bot
 - 📊 **Состояние системы** — просмотр конфигурации, списка пользователей, установленных пакетов
 - 🚀 **Запуск бота** — прямой запуск с проверками
 
-### Альтернатива: Ручная установка
+### 📋 Launcher CLI Commands
+
+Все опции launcher.sh:
+
+```bash
+./launcher.sh --help       # Справка
+./launcher.sh --setup      # Инициализировать всё
+./launcher.sh --run        # Запустить в переднем плане
+./launcher.sh --start      # Запустить в фоне
+./launcher.sh --stop       # Остановить фоновый процесс
+./launcher.sh --status     # Проверить статус
+./launcher.sh --logs       # Просмотреть логи в реальном времени
+./launcher.sh --config     # Меню конфигурации
+./launcher.sh --users      # Меню управления пользователями
+./launcher.sh              # Интерактивное меню (по умолчанию)
+```
 
 ```bash
 # Клонируйте репозиторий
@@ -128,9 +143,29 @@ ALLOWED_USERS=123456789,987654321
 | `/system` | Информация о системе |
 | `/help` | Справка по командам |
 
-## 🔧 Запуск в фоне (production)
+## 🔧 Запуск в фоне
 
-### Systemd
+### 🌙 Способ 1: Встроенный фоновый запуск (Рекомендуется)
+
+Используйте встроенный функционал launcher.sh:
+
+```bash
+# Запустить бота в фоне
+./launcher.sh --start
+
+# Проверить статус
+./launcher.sh --status
+
+# Просмотреть логи в реальном времени
+./launcher.sh --logs
+
+# Остановить бота
+./launcher.sh --stop
+```
+
+Логи сохраняются в `logs/bot.log` и автоматически ротируются.
+
+### 🐧 Способ 2: Systemd (для постоянной работы)
 
 Создайте файл `/etc/systemd/system/server-monitor-bot.service`:
 
@@ -143,9 +178,10 @@ After=network.target
 Type=simple
 User=your_user
 WorkingDirectory=/path/to/server_monitor_bot
-Environment="PATH=/path/to/venv/bin"
-ExecStart=/path/to/venv/bin/python main.py
+Environment="PATH=/path/to/server_monitor_bot/venv/bin"
+ExecStart=/path/to/server_monitor_bot/venv/bin/python /path/to/server_monitor_bot/main.py
 Restart=always
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
@@ -158,9 +194,12 @@ sudo systemctl daemon-reload
 sudo systemctl enable server-monitor-bot
 sudo systemctl start server-monitor-bot
 sudo systemctl status server-monitor-bot
+
+# Просмотр логов
+sudo journalctl -u server-monitor-bot -f
 ```
 
-### Docker
+### 🐋 Способ 3: Docker
 
 Создайте `Dockerfile`:
 
@@ -181,7 +220,8 @@ CMD ["python", "main.py"]
 
 ```bash
 docker build -t server-monitor-bot .
-docker run -d --env-file .env server-monitor-bot
+docker run -d --name server-monitor-bot --env-file .env server-monitor-bot
+docker logs -f server-monitor-bot
 ```
 
 ## 🛠️ Требования
