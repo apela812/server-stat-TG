@@ -3,6 +3,7 @@
 """
 import psutil
 import platform
+import socket
 from datetime import timedelta
 
 
@@ -100,7 +101,7 @@ def get_system_info() -> dict:
 
     return {
         "platform": platform.system(),
-        "hostname": psutil.hostname(),
+        "hostname": socket.gethostname(),
         "uptime": uptime_str,
         "boot_time": psutil.boot_time(),
         "temperature": temp,
