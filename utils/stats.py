@@ -2,6 +2,7 @@
 Модуль сбора статистики сервера.
 """
 import psutil
+import platform
 from datetime import timedelta
 
 
@@ -98,7 +99,7 @@ def get_system_info() -> dict:
         pass
 
     return {
-        "platform": psutil.system(),
+        "platform": platform.system(),
         "hostname": psutil.hostname(),
         "uptime": uptime_str,
         "boot_time": psutil.boot_time(),

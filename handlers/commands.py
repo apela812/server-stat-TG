@@ -28,10 +28,10 @@ def format_cpu_stats(cpu: dict) -> str:
     status_emoji = "🟢" if cpu["percent"] < 50 else "🟡" if cpu["percent"] < 80 else "🔴"
 
     return (
-        f"{status_emoji} <b>Статистика CPU</b>\n\n"
-        f"📊 Загрузка: <b>{cpu['percent']}%</b>\n"
-        f"⚡ Частота: <b>{cpu['freq_current']} MHz</b> (макс. {cpu['freq_max']} MHz)\n"
-        f"🔹 Ядра: <b>{cpu['cores_physical']}</b> физических, <b>{cpu['cores_logical']}</b> логических"
+        f"{status_emoji} Статистика CPU\n\n"
+        f"📊 Загрузка: {cpu['percent']}%\n"
+        f"⚡ Частота: {cpu['freq_current']} MHz (макс. {cpu['freq_max']} MHz)\n"
+        f"🔹 Ядра: {cpu['cores_physical']} физических, {cpu['cores_logical']} логических"
     )
 
 
@@ -40,26 +40,26 @@ def format_ram_stats(ram: dict) -> str:
     status_emoji = "🟢" if ram["percent"] < 50 else "🟡" if ram["percent"] < 80 else "🔴"
 
     return (
-        f"{status_emoji} <b>Статистика RAM</b>\n\n"
-        f"📊 Загрузка: <b>{ram['percent']}%</b>\n"
-        f"💾 Всего: <b>{ram['total']:.2f} GB</b>\n"
-        f"✅ Свободно: <b>{ram['available']:.2f} GB</b>\n"
-        f"🔸 Использовано: <b>{ram['used']:.2f} GB</b>"
+        f"{status_emoji} Статистика RAM\n\n"
+        f"📊 Загрузка: {ram['percent']}%\n"
+        f"💾 Всего: {ram['total']:.2f} GB\n"
+        f"✅ Свободно: {ram['available']:.2f} GB\n"
+        f"🔸 Использовано: {ram['used']:.2f} GB"
     )
 
 
 def format_disk_stats(disks: list) -> str:
     """Форматирование статистики дисков."""
-    text = "💿 <b>Статистика дисков</b>\n\n"
+    text = "💿 Статистика дисков\n\n"
 
     for disk in disks:
         status_emoji = "🟢" if disk["percent"] < 50 else "🟡" if disk["percent"] < 80 else "🔴"
         text += (
-            f"{status_emoji} <b>{disk['mountpoint']}</b> ({disk['device']})\n"
+            f"{status_emoji} {disk['mountpoint']} ({disk['device']})\n"
             f"   Тип: {disk['fstype']}\n"
-            f"   Всего: <b>{disk['total']:.2f} GB</b>\n"
-            f"   Свободно: <b>{disk['free']:.2f} GB</b>\n"
-            f"   Загрузка: <b>{disk['percent']}%</b>\n\n"
+            f"   Всего: {disk['total']:.2f} GB\n"
+            f"   Свободно: {disk['free']:.2f} GB\n"
+            f"   Загрузка: {disk['percent']}%\n\n"
         )
 
     return text.strip()
@@ -68,27 +68,27 @@ def format_disk_stats(disks: list) -> str:
 def format_network_stats(network: dict) -> str:
     """Форматирование статистики сети."""
     return (
-        "🌐 <b>Статистика сети</b>\n\n"
-        f"📤 Отправлено: <b>{network['bytes_sent']:.2f} MB</b>\n"
-        f"📥 Получено: <b>{network['bytes_recv']:.2f} MB</b>\n"
-        f"📦 Пакетов отправлено: <b>{network['packets_sent']:,}</b>\n"
-        f"📦 Пакетов получено: <b>{network['packets_recv']:,}</b>\n\n"
-        f"<b>Интерфейсы:</b>\n"
+        "🌐 Статистика сети\n\n"
+        f"📤 Отправлено: {network['bytes_sent']:.2f} MB\n"
+        f"📥 Получено: {network['bytes_recv']:.2f} MB\n"
+        f"📦 Пакетов отправлено: {network['packets_sent']:,}\n"
+        f"📦 Пакетов получено: {network['packets_recv']:,}\n\n"
+        f"Интерфейсы:\n"
         + "\n".join(f"  • {ip}" for ip in network["ip_addresses"][:5])
     )
 
 
 def format_system_info(sys_info: dict) -> str:
     """Форматирование информации о системе."""
-    temp_text = f"🌡️ Температура: <b>{sys_info['temperature']}°C</b>\n" if sys_info["temperature"] else ""
+    temp_text = f"🌡️ Температура: {sys_info['temperature']}°C\n" if sys_info["temperature"] else ""
 
     return (
-        "⚙️ <b>Информация о системе</b>\n\n"
-        f"🖥️ Платформа: <b>{sys_info['platform']}</b>\n"
-        f"📛 Хост: <b>{sys_info['hostname']}</b>\n"
-        f"⏱️ Время работы: <b>{sys_info['uptime']}</b>\n"
+        "⚙️ Информация о системе\n\n"
+        f"🖥️ Платформа: {sys_info['platform']}\n"
+        f"📛 Хост: {sys_info['hostname']}\n"
+        f"⏱️ Время работы: {sys_info['uptime']}\n"
         f"{temp_text}"
-        f"🔹 Ядер CPU: <b>{sys_info['cpu_count']}</b>"
+        f"🔹 Ядер CPU: {sys_info['cpu_count']}"
     )
 
 
@@ -98,13 +98,13 @@ def format_general_status(cpu: dict, ram: dict, sys_info: dict) -> str:
     ram_status = "🟢" if ram["percent"] < 50 else "🟡" if ram["percent"] < 80 else "🔴"
 
     return (
-        f"📊 <b>Общий статус сервера</b>\n\n"
-        f"📛 <b>{sys_info['hostname']}</b>\n"
-        f"⏱️ Аптайм: <b>{sys_info['uptime']}</b>\n\n"
-        f"{cpu_status} <b>CPU:</b> {cpu['percent']}%\n"
-        f"{ram_status} <b>RAM:</b> {ram['percent']}%\n\n"
-        f"⚡ Частота CPU: <b>{cpu['freq_current']} MHz</b>\n"
-        f"💾 RAM: <b>{ram['used']:.2f} / {ram['total']:.2f} GB</b>"
+        f"📊 Общий статус сервера\n\n"
+        f"📛 {sys_info['hostname']}\n"
+        f"⏱️ Аптайм: {sys_info['uptime']}\n\n"
+        f"{cpu_status} CPU: {cpu['percent']}%\n"
+        f"{ram_status} RAM: {ram['percent']}%\n\n"
+        f"⚡ Частота CPU: {cpu['freq_current']} MHz\n"
+        f"💾 RAM: {ram['used']:.2f} / {ram['total']:.2f} GB"
     )
 
 
@@ -116,7 +116,7 @@ async def cmd_start(message: types.Message):
         return
 
     await message.answer(
-        f"👋 <b>Привет, {message.from_user.first_name}!</b>\n\n"
+        f"👋 Привет, {message.from_user.first_name}!\n\n"
         "Я бот для мониторинга вашего сервера.\n"
         "Выберите команду в меню ниже:",
         reply_markup=get_main_keyboard(),
@@ -148,7 +148,7 @@ async def cmd_help(message: types.Message):
         return
 
     help_text = (
-        "ℹ️ <b>Доступные команды:</b>\n\n"
+        "ℹ️ Доступные команды:\n\n"
         "/start - Запустить бота\n"
         "/status - Общий статус сервера\n"
         "/cpu - Статистика процессора\n"
@@ -240,7 +240,7 @@ async def msg_refresh(message: types.Message):
     sys_info = get_system_info()
 
     await message.answer(
-        f"🔄 <b>Данные обновлены</b>\n\n" + format_general_status(cpu, ram, sys_info),
+        f"🔄 Данные обновлены\n\n" + format_general_status(cpu, ram, sys_info),
         reply_markup=get_inline_keyboard(),
     )
 
@@ -259,7 +259,7 @@ async def cb_refresh(callback: types.CallbackQuery):
     sys_info = get_system_info()
 
     await callback.message.edit_text(
-        f"🔄 <b>Данные обновлены</b>\n\n" + format_general_status(cpu, ram, sys_info),
+        f"🔄 Данные обновлены\n\n" + format_general_status(cpu, ram, sys_info),
         reply_markup=get_inline_keyboard(),
     )
 
